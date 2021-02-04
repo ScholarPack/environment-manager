@@ -1,0 +1,36 @@
+name: Validate Build
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Dependencies
+      run: |
+        export PYTHONPATH="$PWD"
+        python -m pip install --upgrade pip
+        pip install pipenv
+        python -m pipenv install --dev --pre --system
+    - name: Pipenv Check
+      run: |
+        pipenv check
+    - name: Bandit Check
+      run: |
+        bandit -r $PWD -f custom --exclude /tests,/venv -lll
+    - name: Black Check
+      run: |
+        black --check $PWD
+    # Re-enable this section in SP2-3737
+    # - name: Unit Tests
+    #   run:
+    #     pytest tests
+    # - name: Coverage Report
+    #   run:
+    #     pytest --cov=./
