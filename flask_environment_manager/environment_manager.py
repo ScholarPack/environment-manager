@@ -14,7 +14,7 @@ class EnvironmentManager:
     def __init__(self, app: Flask, path: str = "", region_name: str = ""):
         """
         :param app: The Flask app instance
-        :param path: Path of the parameters
+        :param path: Path of the parameters in the SSM instance to read
         :param region_name: The region of the SSM instance
         """
         self._app = app
