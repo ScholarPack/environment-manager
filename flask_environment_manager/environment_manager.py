@@ -1,6 +1,9 @@
 import os
-from flask import Flask
 import boto3
+
+from typing import Any, Union
+from flask import Flask
+from beautifultable import BeautifulTable
 
 
 class EnvironmentManager:
@@ -21,25 +24,72 @@ class EnvironmentManager:
         self._path = path
         self._region_name = region_name
 
-    def compare_env_and_ssm(self):
+    def compare_env_and_ssm(self) -> dict:
         """
         Compare the environment to the SSM parameters.
-        Log an error where a key in the environment is not in SSM.
+        Prints a report in the form of a table to the console.
+        Intended to be used during development.
+        :returns: dict containing a list of missing parameters and a list of mismatched values
         """
-        ssm = self._get_ssm_values()
-        for key in self._app.config.keys():
-            if key not in ssm:
-                self._app.logger.error(f"{key} not found in SSM")
+        table = BeautifulTable()
+        table.columns.header = [
+            "SSM Parameter",
+            "SSM Value",
+            "os.environ Value",
+            "In os.environ",
+            "Matches os.environ",
+        ]
 
-    def load_ssm_into_config(self):
+        missing_params = []
+        mismatched_params = []
+        ssm = self._get_ssm_values()
+        for key in ssm.keys():
+            missing = "NO"
+            mismatch = "NO"
+            if key not in os.environ.keys():
+                missing_params.append(key)
+                missing = "YES"
+
+            if ssm[key] != os.environ.get(key):
+                mismatched_params.append(key)
+                mismatch = "YES"
+
+            table.rows.append(
+                [
+                    key,
+                    str(ssm.get(key)),
+                    str(os.environ.get(key)),
+                    missing,
+                    mismatch,
+                ]
+            )
+
+        table.rows.append(
+            [
+                "",
+                "",
+                "Total NO's",
+                str(len(missing_params)),
+                str(len(mismatched_params)),
+            ]
+        )
+
+        self._app.logger.debug("SSM Parameter/Current Environment Comparison")
+        self._app.logger.debug(table)
+
+        return {
+            "missing": missing_params,
+            "mismatched": mismatched_params,
+        }
+
+    def load_ssm_into_config(self) -> None:
         """
         Load the SSM parameters into the Flask app config.
         """
         ssm = self._get_ssm_values()
-        for key in ssm:
-            self._app.config[key] = self.coerce_value(ssm.get(key))
+        self.parse_whitelist(ssm)
 
-    def _get_ssm_values(self):
+    def _get_ssm_values(self) -> dict:
         """
         Get all values in a given path from SSM.
         The name of the keys in the return dict is the final
@@ -79,7 +129,7 @@ class EnvironmentManager:
 
         return ssm_values
 
-    def parse_whitelist(self):
+    def parse_whitelist(self, source: Union[dict, os._Environ] = os.environ) -> bool:
         """
         Consolidates environment variables with app.config values
         Only sets values on the whitelist
@@ -97,16 +147,14 @@ class EnvironmentManager:
                 if key in self._app.config.keys():
                     default = self._app.config[key]
 
-                if os.environ.get(key, default) is not None:
-                    self._app.config[key] = self.coerce_value(
-                        os.environ.get(key, default)
-                    )
+                if source.get(key, default) is not None:
+                    self._app.config[key] = self.coerce_value(source.get(key, default))
         else:
             self._app.logger.debug("No whitelist to process")
 
         return True
 
-    def coerce_value(self, value):
+    def coerce_value(self, value: Any) -> Any:
         """
         Coerce the passed value to a boolean if it is of the correct value.
         :param value: The value to coerce.

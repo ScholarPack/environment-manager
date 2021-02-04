@@ -5,14 +5,18 @@ name = "pypi"
 
 [packages]
 flask = "*"
+boto3 = "*"
+beautifultable = "*"
 
 [dev-packages]
 pytest = "*"
 black = "*"
 mock = "*"
 twine = "*"
-boto3 = "*"
 bandit = "*"
+moto = "*"
+pytest-cov = "*"
+mypy = "*"
 
 [pipenv]
 allow_prereleases = true
