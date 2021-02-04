@@ -14,7 +14,7 @@ class EnvironmentManager:
     _enabled_values = ["true", "on"]
     _disabled_values = ["false", "off"]
 
-    def __init__(self, app: Flask, path: str = "", region_name: str = ""):
+    def __init__(self, app: Union[Flask, Any], path: str = "", region_name: str = ""):
         """
         :param app: The Flask app instance
         :param path: Path of the parameters in the SSM instance to read
