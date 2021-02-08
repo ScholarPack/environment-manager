@@ -30,9 +30,9 @@ class SsmEnvironmentManager:
         self._path = path
 
         if self._app is not None:
-            self._aws_access_key = self._app.config.get("AWS_ACCESS_KEY")
-            self._aws_access_secret = self._app.config.get("AWS_ACCESS_SECRET")
-            self._region_name = self._app.config.get("AWS_REGION")
+            self._aws_access_key = self._app.config.get("AWS_SSM_ACCESS_KEY")
+            self._aws_access_secret = self._app.config.get("AWS_SSM_ACCESS_SECRET")
+            self._region_name = self._app.config.get("AWS_SSM_REGION")
 
         if region_name:
             self._region_name = region_name

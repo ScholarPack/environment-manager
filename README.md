@@ -33,7 +33,7 @@ Example
 }
 ```
 
-The values stored in the whitelist will be the only values updated in the config.
+The keys stored in the whitelist will be the only keys updated in the config.
 
 # Managers
 
@@ -43,9 +43,9 @@ This manager can be imported with `from flask_environment_manager import SsmEnvi
 
 This manager requires the following to be definied in the Flask app config, in addition the the whitelist:
 
-- AWS_ACCESS_KEY
-- AWS_ACCESS_SECRET
-- AWS_REGION
+- AWS_SSM_ACCESS_KEY
+- AWS_SSM_ACCESS_SECRET
+- AWS_SSM_REGION
 
 This manager will connect to AWS SSM and get parameters from a given path.
 
