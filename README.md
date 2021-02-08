@@ -2,11 +2,73 @@
 
 # Flask Environment Manager
 
+A Flask environment manager for copying parameters from a source into the Flask app config, while also abiding by an override whitelist.
+
+Currently, this packaged supports overriding the config from:
+- `os.environ` via `OsEnvironmentManager`
+- `AWS SSM` via `SsmEnvironmentManager`
+
 # Installation
 Install and update using `pip`:
 
 ```bash 
 pip install -U flask-environment-manager
+```
+
+# Getting Started
+
+Before using the Environment Manager, you must ensure the following is set up in your Flask app config:
+
+- ENV_OVERRIDE_WHITELIST
+
+Example
+```python
+{
+    "ENV_OVERRIDE_WHITELIST": [
+        "ENV_VAR_1",
+        "ENV_VAR_2",
+        "ENV_VAR_3",
+        "ENV_VAR_4"
+    ],
+}
+```
+
+The values stored in the whitelist will be the only values updated in the config.
+
+# Managers
+
+## SSM Environment Manager
+
+This manager can be imported with `from flask_environment_manager import SsmEnvironmentManager`
+
+This manager requires the following to be definied in the Flask app config, in addition the the whitelist:
+
+- AWS_ACCESS_KEY
+- AWS_ACCESS_SECRET
+- AWS_REGION
+
+This manager will connect to AWS SSM and get parameters from a given path.
+
+The following snippet will load all parameters nested under the `/directory` path (recursively).
+
+```python
+from flask_environment_manager import SsmEnvironmentManager
+manager = SsmEnvironmentManager(app, "/directory")
+manager.load_into_config()
+```
+
+It is important to note that parameters are stored as their final name in the path. For example, the parameter stored at `/directory/params/param` will be stored as `param`.
+
+## OS Environment Manager
+
+This manager can be imported with `from flask_environment_manager import OsEnvironmentManager`
+
+This manager will use the `os.environ` keys and values to update the `app.config`
+
+```python
+from flask_environment_manager import OsEnvironmentManager
+manager = OsEnvironmentManager(app)
+manager.load_into_config()
 ```
 
 # Developing

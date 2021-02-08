@@ -1,28 +1,41 @@
 import os
 import boto3
 
-from typing import Any, Union
+from typing import Optional
 from flask import Flask
 from beautifultable import BeautifulTable
+from flask_environment_manager.whitelist_parser import WhitelistParser
 
 
-class EnvironmentManager:
-    """
-    Utility functions to assist during app creation
-    """
+class SsmEnvironmentManager:
+    _app: Flask
+    _path: Optional[str] = None
+    _region_name: Optional[str] = None
+    _aws_access_key: Optional[str] = None
+    _aws_access_secret: Optional[str] = None
 
-    _enabled_values = ["true", "on"]
-    _disabled_values = ["false", "off"]
-
-    def __init__(self, app: Union[Flask, Any], path: str = "", region_name: str = ""):
+    def __init__(
+        self,
+        app: Flask,
+        path: Optional[str] = None,
+        region_name: Optional[str] = None,
+    ):
         """
+        Will read the AWS SSM access details from the app.config
         :param app: The Flask app instance
         :param path: Path of the parameters in the SSM instance to read
-        :param region_name: The region of the SSM instance
+        :param region_name: The region of the SSM instance. This will override the app.config value if provided.
         """
         self._app = app
         self._path = path
-        self._region_name = region_name
+
+        if self._app is not None:
+            self._aws_access_key = self._app.config.get("AWS_ACCESS_KEY")
+            self._aws_access_secret = self._app.config.get("AWS_ACCESS_SECRET")
+            self._region_name = self._app.config.get("AWS_REGION")
+
+        if region_name:
+            self._region_name = region_name
 
     def compare_env_and_ssm(self) -> dict:
         """
@@ -44,15 +57,15 @@ class EnvironmentManager:
         mismatched_params = []
         ssm = self._get_ssm_values()
         for key in ssm.keys():
-            missing = "NO"
-            mismatch = "NO"
+            missing = "YES"
+            mismatch = "YES"
             if key not in os.environ.keys():
                 missing_params.append(key)
-                missing = "YES"
+                missing = "NO"
 
             if ssm[key] != os.environ.get(key):
                 mismatched_params.append(key)
-                mismatch = "YES"
+                mismatch = "NO"
 
             table.rows.append(
                 [
@@ -74,20 +87,19 @@ class EnvironmentManager:
             ]
         )
 
-        self._app.logger.debug("SSM Parameter/Current Environment Comparison")
-        self._app.logger.debug(table)
+        self._app.logger.debug(f"SSM Parameter/Current Environment Comparison\n{table}")
 
         return {
             "missing": missing_params,
             "mismatched": mismatched_params,
         }
 
-    def load_ssm_into_config(self) -> None:
+    def load_into_config(self) -> None:
         """
         Load the SSM parameters into the Flask app config.
         """
         ssm = self._get_ssm_values()
-        self.parse_whitelist(ssm)
+        WhitelistParser(self._app, ssm).parse()
 
     def _get_ssm_values(self) -> dict:
         """
@@ -97,7 +109,12 @@ class EnvironmentManager:
         be stored in the dict as 'path'
         :returns: A dict of parameter names and values.
         """
-        client = boto3.client("ssm", region_name=self._region_name)
+        client = boto3.client(
+            "ssm",
+            region_name=self._region_name,
+            aws_access_key_id=self._aws_access_key,
+            aws_secret_access_key=self._aws_access_secret,
+        )
         more_parameters = True
         ssm_values: dict = {}
         ssm_repsonse: dict = {}
@@ -128,42 +145,3 @@ class EnvironmentManager:
                 more_parameters = False
 
         return ssm_values
-
-    def parse_whitelist(self, source: Union[dict, os._Environ] = os.environ) -> bool:
-        """
-        Consolidates environment variables with app.config values
-        Only sets values on the whitelist
-        :return: Boolean task status
-        """
-        try:
-            whitelist = self._app.config["ENV_OVERRIDE_WHITELIST"]
-        except KeyError:
-            self._app.logger.debug("Whitelist missing")
-            whitelist = None
-
-        if whitelist is not None:
-            for key in whitelist:
-                default = None
-                if key in self._app.config.keys():
-                    default = self._app.config[key]
-
-                if source.get(key, default) is not None:
-                    self._app.config[key] = self.coerce_value(source.get(key, default))
-        else:
-            self._app.logger.debug("No whitelist to process")
-
-        return True
-
-    def coerce_value(self, value: Any) -> Any:
-        """
-        Coerce the passed value to a boolean if it is of the correct value.
-        :param value: The value to coerce.
-        """
-        if type(value) is str:
-            if value.lower() in self._enabled_values:
-                return True
-
-            if value.lower() in self._disabled_values:
-                return False
-
-        return value
