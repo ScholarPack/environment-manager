@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="flask-environment-manager",
-    version="1.0.0",
+    version="1.1.0",
     author="ScholarPack",
     author_email="dev@scholarpack.com",
     description="An environment manager for Flask, with support for whitelists and AWS SSM.",
@@ -20,5 +20,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.8",
-    install_requires=["flask"],
+    install_requires=["flask", "boto3", "beautifultable"],
 )

@@ -27,10 +27,9 @@ jobs:
     - name: Black Check
       run: |
         black --check $PWD
-    # Re-enable this section in SP2-3737
-    # - name: Unit Tests
-    #   run:
-    #     pytest tests
-    # - name: Coverage Report
-    #   run:
-    #     pytest --cov=./
+    - name: mypy Check
+      run: |
+        mypy $PWD
+    - name: Unit Tests
+      run:
+        pytest --cov=./
