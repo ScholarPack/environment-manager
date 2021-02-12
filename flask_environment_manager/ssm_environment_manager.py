@@ -8,13 +8,6 @@ from flask_environment_manager.whitelist_parser import WhitelistParser
 
 
 class SsmEnvironmentManager:
-    _app: Flask
-    _path: Optional[str] = None
-    _region_name: Optional[str] = None
-    _aws_access_key: Optional[str] = None
-    _aws_access_secret: Optional[str] = None
-    _decrypt: bool = False
-
     def __init__(
         self,
         app: Flask,
