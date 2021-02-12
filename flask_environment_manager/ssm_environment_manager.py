@@ -8,26 +8,23 @@ from flask_environment_manager.whitelist_parser import WhitelistParser
 
 
 class SsmEnvironmentManager:
-    _app: Flask
-    _path: Optional[str] = None
-    _region_name: Optional[str] = None
-    _aws_access_key: Optional[str] = None
-    _aws_access_secret: Optional[str] = None
-
     def __init__(
         self,
         app: Flask,
         path: Optional[str] = None,
         region_name: Optional[str] = None,
+        decrypt: bool = False,
     ):
         """
         Will read the AWS SSM access details from the app.config
         :param app: The Flask app instance
         :param path: Path of the parameters in the SSM instance to read
         :param region_name: The region of the SSM instance. This will override the app.config value if provided.
+        :param decrypt: If True, SecureString parameters are automatically decrypted.
         """
         self._app = app
         self._path = path
+        self._decrypt = decrypt
 
         if self._app is not None:
             self._aws_access_key = self._app.config.get("AWS_SSM_ACCESS_KEY")
@@ -124,10 +121,13 @@ class SsmEnvironmentManager:
                     Path=self._path,
                     Recursive=True,
                     NextToken=ssm_repsonse.get("NextToken"),
+                    WithDecryption=self._decrypt,
                 )
             else:
                 ssm_repsonse = client.get_parameters_by_path(
-                    Path=self._path, Recursive=True
+                    Path=self._path,
+                    Recursive=True,
+                    WithDecryption=self._decrypt,
                 )
 
             parameters = ssm_repsonse.get("Parameters", [])

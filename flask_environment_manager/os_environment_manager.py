@@ -5,8 +5,6 @@ from flask_environment_manager.whitelist_parser import WhitelistParser
 
 
 class OsEnvironmentManager:
-    _app: Flask
-
     def __init__(
         self,
         app: Flask,
