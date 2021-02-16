@@ -11,26 +11,19 @@ class SsmEnvironmentManager:
     def __init__(
         self,
         app: Flask,
-        path: Optional[Union[str, list]] = [],
+        paths: list = [],
         region_name: Optional[str] = None,
         decrypt: bool = False,
     ):
         """
         Will read the AWS SSM access details from the app.config
         :param app: The Flask app instance
-        :param path: Path of the parameters in the SSM instance to read. A string path or a list of paths.
+        :param paths: A list of paths of the parameters in the SSM instance to read.
         :param region_name: The region of the SSM instance. This will override the app.config value if provided.
         :param decrypt: If True, SecureString parameters are automatically decrypted.
         """
         self._app = app
-
-        self._path: list = []
-        if path is not None:
-            if type(path) is not list:
-                self._path = [path]
-            else:
-                self._path = list(path)
-
+        self._paths = paths
         self._decrypt = decrypt
 
         if self._app is not None:
@@ -59,7 +52,7 @@ class SsmEnvironmentManager:
 
         missing_params = []
         mismatched_params = []
-        ssm = self._get_values_from_paths()
+        ssm = self._get_parameters_from_paths()
         for key in ssm.keys():
             missing = "YES"
             mismatch = "YES"
@@ -102,22 +95,23 @@ class SsmEnvironmentManager:
         """
         Load the SSM parameters into the Flask app config.
         """
-        ssm = self._get_values_from_paths()
-        WhitelistParser(self._app, ssm).parse()
+        ssm_parameters = self._get_parameters_from_paths()
+        WhitelistParser(self._app, ssm_parameters).parse()
 
-    def _get_values_from_paths(self) -> dict:
+    def _get_parameters_from_paths(self) -> dict:
         """
-        Iterate over the paths to build a value dict.
+        Iterate over the paths to build a dictionary of
+        parameter/value pairings.
         """
-        ssm: dict = {}
-        for path in self._path:
-            values = self._get_ssm_values(str(path))
-            ssm = {**ssm, **values}
-        return ssm
+        ssm_parameters: dict = {}
+        for path in self._paths:
+            values = self._get_ssm_parameters(str(path))
+            ssm_parameters = {**ssm_parameters, **values}
+        return ssm_parameters
 
-    def _get_ssm_values(self, path: str) -> dict:
+    def _get_ssm_parameters(self, path: str) -> dict:
         """
-        Get all values in a given path from SSM.
+        Get all parameters in a given path from SSM.
         The name of the keys in the return dict is the final
         part of the parameter path, e.g '/a/param/path' will
         be stored in the dict as 'path'

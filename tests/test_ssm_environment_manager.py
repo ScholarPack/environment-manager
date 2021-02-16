@@ -13,8 +13,8 @@ class TestSsmEnvironmentManager:
         self, mock_client: Any, app: Flask, ssm_client: Any
     ) -> None:
         mock_client.return_value = ssm_client
-        env_man = SsmEnvironmentManager(app, "/", "eu-west-2")
-        data = env_man._get_ssm_values("/")
+        env_man = SsmEnvironmentManager(app, region_name="eu-west-2")
+        data = env_man._get_ssm_parameters("/")
         assert data == {
             "test": "9ce10572-a1a4-422c-9cf1-d4b45ecd93c2",
             "child": "27698a22-c47c-4457-a6b6-907051b4534a",
@@ -73,11 +73,11 @@ class TestSsmEnvironmentManager:
         ],
     )
     @patch(
-        "flask_environment_manager.ssm_environment_manager.SsmEnvironmentManager._get_ssm_values"
+        "flask_environment_manager.ssm_environment_manager.SsmEnvironmentManager._get_ssm_parameters"
     )
     def test_environment_comparisons(
         self,
-        mock_get_ssm_values: Any,
+        mock_get_ssm_parameters: Any,
         mock_config: Any,
         mock_value: dict,
         expected_missing: list,
@@ -85,32 +85,11 @@ class TestSsmEnvironmentManager:
         app: Flask,
     ) -> None:
         os.environ = mock_config
-        mock_get_ssm_values.return_value = mock_value
-        env_man = SsmEnvironmentManager(app, "/", "eu-west-2")
+        mock_get_ssm_parameters.return_value = mock_value
+        env_man = SsmEnvironmentManager(app, ["/"], "eu-west-2")
         res = env_man.compare_env_and_ssm()
         assert res.get("missing") == expected_missing
         assert res.get("mismatched") == expected_mismatched
-
-    @pytest.mark.parametrize(
-        "path, expected",
-        [
-            (
-                "/",
-                ["/"],
-            ),
-            (
-                ["/a", "/b"],
-                ["/a", "/b"],
-            ),
-            (
-                None,
-                [],
-            ),
-        ],
-    )
-    def test_constructor_path(self, path: Any, expected: Any, app: Flask) -> None:
-        env_man = SsmEnvironmentManager(app, path, "eu-west-2")
-        assert env_man._path == expected
 
     @patch("boto3.client")
     @pytest.mark.parametrize(
@@ -145,4 +124,4 @@ class TestSsmEnvironmentManager:
     ) -> None:
         mock_client.return_value = ssm_client
         env_man = SsmEnvironmentManager(app, path, "eu-west-2")
-        assert env_man._get_values_from_paths() == expected
+        assert env_man._get_parameters_from_paths() == expected
