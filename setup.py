@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="flask-environment-manager",
-    version="2.1.0",
+    version="2.2.0",
     author="ScholarPack",
     author_email="dev@scholarpack.com",
     description="An environment manager for Flask, with support for whitelists and AWS SSM.",

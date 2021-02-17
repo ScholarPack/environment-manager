@@ -1,7 +1,7 @@
 import os
 import boto3
 
-from typing import Optional
+from typing import Optional, Union
 from flask import Flask
 from beautifultable import BeautifulTable
 from flask_environment_manager.whitelist_parser import WhitelistParser
@@ -11,19 +11,19 @@ class SsmEnvironmentManager:
     def __init__(
         self,
         app: Flask,
-        path: Optional[str] = None,
+        paths: list = [],
         region_name: Optional[str] = None,
         decrypt: bool = False,
     ):
         """
         Will read the AWS SSM access details from the app.config
         :param app: The Flask app instance
-        :param path: Path of the parameters in the SSM instance to read
+        :param paths: A list of paths of the parameters in the SSM instance to read.
         :param region_name: The region of the SSM instance. This will override the app.config value if provided.
         :param decrypt: If True, SecureString parameters are automatically decrypted.
         """
         self._app = app
-        self._path = path
+        self._paths = paths
         self._decrypt = decrypt
 
         if self._app is not None:
@@ -52,22 +52,22 @@ class SsmEnvironmentManager:
 
         missing_params = []
         mismatched_params = []
-        ssm = self._get_ssm_values()
-        for key in ssm.keys():
+        ssm_parameters = self._get_parameters_from_paths()
+        for key in ssm_parameters.keys():
             missing = "YES"
             mismatch = "YES"
             if key not in os.environ.keys():
                 missing_params.append(key)
                 missing = "NO"
 
-            if ssm[key] != os.environ.get(key):
+            if ssm_parameters[key] != os.environ.get(key):
                 mismatched_params.append(key)
                 mismatch = "NO"
 
             table.rows.append(
                 [
                     key,
-                    str(ssm.get(key)),
+                    str(ssm_parameters.get(key)),
                     str(os.environ.get(key)),
                     missing,
                     mismatch,
@@ -95,15 +95,27 @@ class SsmEnvironmentManager:
         """
         Load the SSM parameters into the Flask app config.
         """
-        ssm = self._get_ssm_values()
-        WhitelistParser(self._app, ssm).parse()
+        ssm_parameters = self._get_parameters_from_paths()
+        WhitelistParser(self._app, ssm_parameters).parse()
 
-    def _get_ssm_values(self) -> dict:
+    def _get_parameters_from_paths(self) -> dict:
         """
-        Get all values in a given path from SSM.
+        Iterate over the paths to build a dictionary of
+        parameter/value pairings.
+        """
+        ssm_parameters: dict = {}
+        for path in self._paths:
+            values = self._get_ssm_parameters(str(path))
+            ssm_parameters = {**ssm_parameters, **values}
+        return ssm_parameters
+
+    def _get_ssm_parameters(self, path: str) -> dict:
+        """
+        Get all parameters in a given path from SSM.
         The name of the keys in the return dict is the final
         part of the parameter path, e.g '/a/param/path' will
         be stored in the dict as 'path'
+        :param path: The path in SSM to read variables from
         :returns: A dict of parameter names and values.
         """
         client = boto3.client(
@@ -118,14 +130,14 @@ class SsmEnvironmentManager:
         while more_parameters:
             if ssm_repsonse.get("NextToken"):
                 ssm_repsonse = client.get_parameters_by_path(
-                    Path=self._path,
+                    Path=path,
                     Recursive=True,
                     NextToken=ssm_repsonse.get("NextToken"),
                     WithDecryption=self._decrypt,
                 )
             else:
                 ssm_repsonse = client.get_parameters_by_path(
-                    Path=self._path,
+                    Path=path,
                     Recursive=True,
                     WithDecryption=self._decrypt,
                 )
