@@ -24,7 +24,7 @@ class TestSsmEnvironmentManager:
         }
 
     @pytest.mark.parametrize(
-        "mock_config, mock_value, expected_missing, expected_mismatched",
+        "mock_value, mock_config, expected_missing, expected_mismatched",
         [
             (
                 {},
@@ -78,8 +78,8 @@ class TestSsmEnvironmentManager:
     def test_environment_comparisons(
         self,
         mock_get_ssm_parameters: Any,
-        mock_config: Any,
         mock_value: dict,
+        mock_config: Any,
         expected_missing: list,
         expected_mismatched: list,
         app: Flask,

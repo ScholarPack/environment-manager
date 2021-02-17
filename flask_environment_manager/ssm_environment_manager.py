@@ -43,32 +43,32 @@ class SsmEnvironmentManager:
         """
         table = BeautifulTable()
         table.columns.header = [
-            "SSM Parameter",
-            "SSM Value",
+            "OS Parameter",
             "os.environ Value",
-            "In os.environ",
-            "Matches os.environ",
+            "SSM Value",
+            "Present in both os.environ and SSM",
+            "Values Match",
         ]
 
         missing_params = []
         mismatched_params = []
         ssm_parameters = self._get_parameters_from_paths()
-        for key in ssm_parameters.keys():
+        for key in os.environ.keys():
             missing = "YES"
             mismatch = "YES"
-            if key not in os.environ.keys():
+            if key not in ssm_parameters.keys():
                 missing_params.append(key)
                 missing = "NO"
 
-            if ssm_parameters[key] != os.environ.get(key):
+            if ssm_parameters.get(key) != os.environ.get(key):
                 mismatched_params.append(key)
                 mismatch = "NO"
 
             table.rows.append(
                 [
                     key,
-                    str(ssm_parameters.get(key)),
                     str(os.environ.get(key)),
+                    str(ssm_parameters.get(key)),
                     missing,
                     mismatch,
                 ]
