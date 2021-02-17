@@ -54,11 +54,11 @@ class SsmEnvironmentManager:
         mismatched_params = []
         ssm_parameters = self._get_parameters_from_paths()
         for key in os.environ.keys():
-            missing = "YES"
+            stored_in_ssm = "YES"
             mismatch = "YES"
             if key not in ssm_parameters.keys():
                 missing_params.append(key)
-                missing = "NO"
+                stored_in_ssm = "NO"
 
             if ssm_parameters.get(key) != os.environ.get(key):
                 mismatched_params.append(key)
@@ -69,7 +69,7 @@ class SsmEnvironmentManager:
                     key,
                     str(os.environ.get(key)),
                     str(ssm_parameters.get(key)),
-                    missing,
+                    stored_in_ssm,
                     mismatch,
                 ]
             )
