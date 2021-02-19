@@ -125,3 +125,17 @@ class TestSsmEnvironmentManager:
         mock_client.return_value = ssm_client
         env_man = SsmEnvironmentManager(app, path, "eu-west-2")
         assert env_man._get_parameters_from_paths() == expected
+
+    @patch("boto3.client")
+    def test_loading_from_local_file(
+        self,
+        mock_client: Any,
+        app: Flask,
+        ssm_client: Any,
+    ) -> None:
+        mock_client.return_value = ssm_client
+        app.config["LOCAL_CONFIG_PYFILE"] = "local_config.py"
+        env_man = SsmEnvironmentManager(app, ["/a"], "eu-west-2")
+        parameters = env_man._get_parameters_to_parse()
+        assert parameters.get("TEST1") == 1
+        assert parameters.get("TEST2") == 2

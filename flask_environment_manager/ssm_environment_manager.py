@@ -95,13 +95,35 @@ class SsmEnvironmentManager:
         """
         Load the SSM parameters into the Flask app config.
         """
-        ssm_parameters = self._get_parameters_from_paths()
-        WhitelistParser(self._app, ssm_parameters).parse()
+        parameters = self._get_parameters_to_parse()
+        WhitelistParser(self._app, parameters).parse()
+
+    def _get_parameters_to_parse(self) -> dict:
+        """
+        Get parameters from SSM or from a local config file.
+
+        Will read from the local file if LOCAL_CONFIG_PYFILE
+        is set as the file name.
+        :returns: A dict of parameter names and values
+        """
+        if self._app.config.get("LOCAL_CONFIG_PYFILE"):
+            self._app.logger.debug(
+                f"Reading parameters from {self._app.config.get('LOCAL_CONFIG_PYFILE')}"
+            )
+            self._app.config.from_pyfile(
+                self._app.config["LOCAL_CONFIG_PYFILE"], silent=False
+            )
+            parameters = dict(self._app.config)
+        else:
+            self._app.logger.debug(f"Reading parameters from SSM")
+            parameters = self._get_parameters_from_paths()
+        return parameters
 
     def _get_parameters_from_paths(self) -> dict:
         """
         Iterate over the paths to build a dictionary of
         parameter/value pairings.
+        :returns: A dict of parameter names and values
         """
         ssm_parameters: dict = {}
         for path in self._paths:

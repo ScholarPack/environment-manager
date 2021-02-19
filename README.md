@@ -59,6 +59,27 @@ manager.load_into_config()
 
 It is important to note that parameters are stored as their final name in the path. For example, the parameter stored at `/directory/params/param` will be stored as `param`.
 
+### Local Development
+The SSM Manager also provides a way to work with a local config file, instead of SSM. This is useful when
+working locally or in a way where you don't have access to SSM.
+
+You can access this by setting the `LOCAL_CONFIG_PYFILE` key on the `app.config`. This will make use of `config.from_pyfile` when reading the file name passed in.
+
+Example:
+```python
+from flask_environment_manager import SsmEnvironmentManager
+app.config['LOCAL_CONFIG_PYFILE'] = 'local_config.py'
+manager = SsmEnvironmentManager(app, "/directory")
+manager.load_into_config()
+```
+
+Where `local_config.py` looks something like:
+```python
+KEY1=1
+KEY2="2"
+KEY3=True
+```
+
 ## OS Environment Manager
 
 This manager can be imported with `from flask_environment_manager import OsEnvironmentManager`
