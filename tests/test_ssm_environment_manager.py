@@ -134,8 +134,9 @@ class TestSsmEnvironmentManager:
         ssm_client: Any,
     ) -> None:
         mock_client.return_value = ssm_client
-        app.config["LOCAL_CONFIG_PYFILE"] = "local_config.py"
-        env_man = SsmEnvironmentManager(app, ["/a"], "eu-west-2")
+        env_man = SsmEnvironmentManager(
+            app, ["/a"], "eu-west-2", config_pyfile="local_config.py"
+        )
         parameters = env_man._get_parameters_to_parse()
         assert parameters.get("TEST1") == 1
         assert parameters.get("TEST2") == 2

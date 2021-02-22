@@ -63,13 +63,12 @@ It is important to note that parameters are stored as their final name in the pa
 The SSM Manager also provides a way to work with a local config file, instead of SSM. This is useful when
 working locally or in a way where you don't have access to SSM.
 
-You can access this by setting the `LOCAL_CONFIG_PYFILE` key on the `app.config`. This will make use of `config.from_pyfile` when reading the file name passed in.
+You can access this by passing `config_pyfile` into the constructor. This will make use of `config.from_pyfile` when reading the file name passed in.
 
 Example:
 ```python
 from flask_environment_manager import SsmEnvironmentManager
-app.config['LOCAL_CONFIG_PYFILE'] = 'local_config.py'
-manager = SsmEnvironmentManager(app, "/directory")
+manager = SsmEnvironmentManager(app, "/directory", config_pyfile='local_config.py')
 manager.load_into_config()
 ```
 
