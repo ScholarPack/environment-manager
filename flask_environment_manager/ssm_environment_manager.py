@@ -2,7 +2,7 @@ import os
 import boto3
 
 from typing import Optional, Union
-from flask import Flask
+from flask import Flask, config
 from beautifultable import BeautifulTable
 from flask_environment_manager.whitelist_parser import WhitelistParser
 
@@ -14,6 +14,7 @@ class SsmEnvironmentManager:
         paths: list = [],
         region_name: Optional[str] = None,
         decrypt: bool = False,
+        config_pyfile: Optional[str] = None,
     ):
         """
         Will read the AWS SSM access details from the app.config
@@ -21,6 +22,7 @@ class SsmEnvironmentManager:
         :param paths: A list of paths of the parameters in the SSM instance to read.
         :param region_name: The region of the SSM instance. This will override the app.config value if provided.
         :param decrypt: If True, SecureString parameters are automatically decrypted.
+        :param config_pyfile:
         """
         self._app = app
         self._paths = paths
@@ -33,6 +35,8 @@ class SsmEnvironmentManager:
 
         if region_name:
             self._region_name = region_name
+
+        self._config_pyfile = config_pyfile
 
     def compare_env_and_ssm(self) -> dict:
         """
@@ -95,13 +99,28 @@ class SsmEnvironmentManager:
         """
         Load the SSM parameters into the Flask app config.
         """
-        ssm_parameters = self._get_parameters_from_paths()
-        WhitelistParser(self._app, ssm_parameters).parse()
+        parameters = self._get_parameters_to_parse()
+        WhitelistParser(self._app, parameters).parse()
+
+    def _get_parameters_to_parse(self) -> dict:
+        """
+        Get parameters from SSM or from a local config file.
+        :returns: A dict of parameter names and values
+        """
+        if self._config_pyfile:
+            self._app.logger.debug(f"Reading parameters from {self._config_pyfile}")
+            self._app.config.from_pyfile(self._config_pyfile, silent=False)
+            parameters = dict(self._app.config)
+        else:
+            self._app.logger.debug(f"Reading parameters from SSM")
+            parameters = self._get_parameters_from_paths()
+        return parameters
 
     def _get_parameters_from_paths(self) -> dict:
         """
         Iterate over the paths to build a dictionary of
         parameter/value pairings.
+        :returns: A dict of parameter names and values
         """
         ssm_parameters: dict = {}
         for path in self._paths:
